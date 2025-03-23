@@ -1,7 +1,8 @@
 
-import pyperclip
+import pyperclip 
+import json
 from tkinter import *
-from tkinter import messagebox # since this is not a class, we need to be import that module seperately
+from tkinter import messagebox # Since this is not a class, we need to be import that module seperately
 from random import choice, randint, shuffle
 
 def main():
@@ -34,23 +35,54 @@ def main():
         website = website_entry.get()
         email = email_entry.get()
         password = password_entry.get()
+        new_data = {
+            website: {
+                "email": email,
+                "password": password,
+            }
+        }
 
         # Ensure no fields are left empty
         if len(website) == 0 or len(email) == 0 or len(password) == 0:
             messagebox.showinfo(title="Missing info", message="Please fill out all of the fields.")
+        
         else:
-            # Confirmation message before saving
-            message_result = messagebox.askyesno(title=website, message=f"These are the details entered: \nEmail: {email}"
-                                f"\nPassword: {password}\nIs it ok to save?")  
-            if message_result:
-                # Save details to file
-                with open("data.txt", "a") as data_file:
-                    data_file.write(f"{website} | {email} | {password}\n")
-                    website_entry.delete(0, END) # Clear website entry after saving
-                    password_entry.delete(0, END)  # Clear password entry after saving
+            try:
+                with open("data.json", "r") as data_file:
+                    data = json.load(data_file) # Read old data
+
+            except FileNotFoundError: # If there is no data.json file, we create one
+                with open("data.json", "w") as data_file:
+                    json.dump(new_data, data_file, indent=4)
+
+            else:
+                data.update(new_data) # Update old data with new data
+                with open("data.json", "w") as data_file:
+                    json.dump(data, data_file, indent=4) # Save updated data
+                    
+            finally:  
+                website_entry.delete(0, END) # Clear website entry after saving
+                password_entry.delete(0, END)  # Clear password entry after saving
+
+    # Function to search for saved password
+    def search_password():
+        website = website_entry.get()
+        try:
+            with open("data.json") as data_file:
+                data = json.load(data_file)
+        
+        except FileNotFoundError:
+            messagebox.showinfo(title="Error", message="Credentials not found!")
+
+        else:
+            if website in data:
+                email = data[website]["email"]
+                password = data[website]["password"]
+                messagebox.showinfo(title=website, message=f"Email: {email}\nPassword: {password}")
+            else:
+                messagebox.showinfo(title="Error", message="Credentials not found!")
 
     # UI setup
-
     window = Tk()
     window.title("Password Manager")
     window.config(padx= 40, pady= 40) # Add padding to the window
@@ -72,8 +104,8 @@ def main():
     password_label.grid(column=0, row=3)
 
     # Entry fields
-    website_entry = Entry(width=45)
-    website_entry.grid(column=1 , row=1, columnspan=2, sticky='w')
+    website_entry = Entry(width=25)
+    website_entry.grid(column=1 , row=1, sticky='w')
     website_entry.focus() # Focus on website entry when program starts
 
     email_entry = Entry(width=45)
@@ -90,6 +122,8 @@ def main():
     save_btn = Button(text="Save", width=38,command= save_password)
     save_btn.grid(column=1, row=4, columnspan=2)
 
+    search_btn = Button(text="Search", width=14, command=search_password)
+    search_btn.grid(column=2, row=1, sticky="e")
 
     window.mainloop() # Run the Tkinter main event loop
 
